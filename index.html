@@ -38,7 +38,7 @@
         let startX, startY;
         let offsetX = 0, offsetY = 0;
 
-        const colors = Array.from({ length: gridSize * gridSize }, () => Math.random() * 0xFFFFFF);
+        const colors = Array.from({ length: gridSize * gridSize }, () => 0xFFFFFF);
         const cells = [];
 
         function createGrid() {
@@ -117,17 +117,18 @@
         const socket = new WebSocket("ws://localhost:8000/ws");
 
         socket.onmessage = function(event) {
-            const updates = JSON.parse(event.data);
-            updates.forEach(([x, y, state]) => {
-                const index = x * gridSize + y;
-                colors[index] = state ? 0x000000 : 0xFFFFFF; // Black for live cells, white for dead cells
-                const graphics = cells[index];
-                graphics.clear();
-                graphics.beginFill(colors[index]);
-                const cellSize = (app.screen.width / gridSize) * zoomLevel;
-                graphics.drawRect(x * cellSize + offsetX, y * cellSize + offsetY, cellSize, cellSize);
-                graphics.endFill();
+            const liveCells = JSON.parse(event.data);
+            // Reset all cells to white
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    colors[i * gridSize + j] = 0xFFFFFF;
+                }
+            }
+            // Set live cells to black
+            liveCells.forEach(([x, y]) => {
+                colors[x * gridSize + y] = 0x000000;
             });
+            updateGrid();
         };
 
     });
