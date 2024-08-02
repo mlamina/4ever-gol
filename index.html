@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game of Life</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(1000, 1fr);
+            grid-template-rows: repeat(1000, 1fr);
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+        }
+        .cell {
+            width: 1px;
+            height: 1px;
+            border: 1px solid #ddd;
+        }
+        .alive {
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid" id="grid"></div>
+    <script>
+        const gridElement = document.getElementById('grid');
+        const socket = new WebSocket('ws://localhost:8000/ws');
+
+        socket.onmessage = function(event) {
+            const gridState = JSON.parse(event.data);
+            for (let i = 0; i < 1000; i++) {
+                for (let j = 0; j < 1000; j++) {
+                    const cell = document.getElementById(`cell-${i}-${j}`);
+                    if (gridState[i][j] === 1) {
+                        cell.classList.add('alive');
+                    } else {
+                        cell.classList.remove('alive');
+                    }
+                }
+            }
+        };
+
+        for (let i = 0; i < 1000; i++) {
+            for (let j = 0; j < 1000; j++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.id = `cell-${i}-${j}`;
+                cell.addEventListener('click', () => {
+                    socket.send(JSON.stringify({ x: i, y: j }));
+                });
+                gridElement.appendChild(cell);
+            }
+        }
+    </script>
+</body>
+</html>
