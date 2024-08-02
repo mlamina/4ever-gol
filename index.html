@@ -123,9 +123,9 @@
 
         window.addEventListener('wheel', (event) => {
             if (event.deltaY < 0) {
-                zoomLevel = Math.min(zoomLevel + 0.1, maxZoomLevel);
+                zoomLevel = Math.min(zoomLevel + 0.01, maxZoomLevel);
             } else {
-                zoomLevel = Math.max(zoomLevel - 0.1, 1);
+                zoomLevel = Math.max(zoomLevel - 0.01, 1);
             }
             updateGrid();
         });
