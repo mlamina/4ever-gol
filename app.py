@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
@@ -5,6 +7,10 @@ import threading
 import time
 import json
 import asyncio
+from typing import List
+
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -16,27 +22,60 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize SQLite database
-conn = sqlite3.connect('grid.db', check_same_thread=False)
-cursor = conn.cursor()
-cursor.execute('''CREATE TABLE IF NOT EXISTS grid (x INTEGER, y INTEGER, state INTEGER)''')
-conn.commit()
+class GridManager:
+    def __init__(self, db_path: str, grid_size: int = 1000):
+        self.grid_size = grid_size
+        self.grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.cursor = self.conn.cursor()
+        self._initialize_db()
+        self._load_grid_state()
 
-# Initialize grid
-grid_size = 1000
-grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
+    def _initialize_db(self):
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS grid (x INTEGER, y INTEGER, state INTEGER)''')
+        self.conn.commit()
 
-# Load grid state from database
-cursor.execute('SELECT * FROM grid')
-rows = cursor.fetchall()
-for row in rows:
-    x, y, state = row
-    grid[x][y] = state
+    def _load_grid_state(self):
+        self.cursor.execute('SELECT * FROM grid')
+        rows = self.cursor.fetchall()
+        for row in rows:
+            x, y, state = row
+            self.grid[x][y] = state
 
-# WebSocket manager
+    def update_grid(self):
+        while True:
+            new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+            for i in range(self.grid_size):
+                for j in range(self.grid_size):
+                    live_neighbors = 0
+                    for dx in [-1, 0, 1]:
+                        for dy in [-1, 0, 1]:
+                            if dx == 0 and dy == 0:
+                                continue
+                            ni, nj = i + dx, j + dy
+                            if 0 <= ni < self.grid_size and 0 <= nj < self.grid_size:
+                                live_neighbors += self.grid[ni][nj]
+                    if self.grid[i][j] == 1 and live_neighbors in [2, 3]:
+                        new_grid[i][j] = 1
+                    elif self.grid[i][j] == 0 and live_neighbors == 3:
+                        new_grid[i][j] = 1
+
+            self.grid = new_grid
+            logger.info("Grid updated")
+            time.sleep(1)
+
+    def save_cell_state(self, x: int, y: int):
+        self.cursor.execute('REPLACE INTO grid (x, y, state) VALUES (?, ?, ?)', (x, y, self.grid[x][y]))
+        self.conn.commit()
+
+    def get_grid_state(self) -> str:
+        return json.dumps(self.grid)
+
+grid_manager = GridManager('grid.db')
+
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -51,35 +90,17 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# Background thread to update the grid
-def update_grid():
-    while True:
-        new_grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
-        for i in range(grid_size):
-            for j in range(grid_size):
-                live_neighbors = sum([
-                    grid[i-1][j-1], grid[i-1][j], grid[i-1][j+1],
-                    grid[i][j-1], grid[i][j+1],
-                    grid[i+1][j-1], grid[i+1][j], grid[i+1][j+1]
-                ])
-                if grid[i][j] == 1 and live_neighbors in [2, 3]:
-                    new_grid[i][j] = 1
-                elif grid[i][j] == 0 and live_neighbors == 3:
-                    new_grid[i][j] = 1
-        global grid
-        grid = new_grid
-        time.sleep(0.1)
+def update_grid_thread():
+    grid_manager.update_grid()
 
-threading.Thread(target=update_grid, daemon=True).start()
-
-# Background thread to send grid state to clients
-def send_grid_state():
+def send_grid_state_thread():
     while True:
-        grid_state = json.dumps(grid)
+        grid_state = grid_manager.get_grid_state()
         asyncio.run(manager.broadcast(grid_state))
-        time.sleep(0.5)
+        time.sleep(1)
 
-threading.Thread(target=send_grid_state, daemon=True).start()
+threading.Thread(target=update_grid_thread, daemon=True).start()
+threading.Thread(target=send_grid_state_thread, daemon=True).start()
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -89,8 +110,11 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             message = json.loads(data)
             x, y = message['x'], message['y']
-            grid[x][y] = 1 - grid[x][y]
-            cursor.execute('REPLACE INTO grid (x, y, state) VALUES (?, ?, ?)', (x, y, grid[x][y]))
-            conn.commit()
+            grid_manager.grid[x][y] = 1 - grid_manager.grid[x][y]
+            grid_manager.save_cell_state(x, y)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
