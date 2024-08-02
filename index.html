@@ -131,6 +131,13 @@
             updateGrid();
         };
 
+        app.view.addEventListener('click', (event) => {
+            const cellSize = (app.screen.width / gridSize) * zoomLevel;
+            const x = Math.floor((event.clientX - offsetX) / cellSize);
+            const y = Math.floor((event.clientY - offsetY) / cellSize);
+            const message = JSON.stringify({ x, y });
+            socket.send(message);
+        });
     });
 </script>
 </body>
