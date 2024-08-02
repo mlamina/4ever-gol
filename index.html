@@ -31,6 +31,8 @@
             backgroundColor: 0xFFFFFF
         });
 
+        document.body.appendChild(app.view);
+
         const gridSize = 100;
         let zoomLevel = 3;
         const maxZoomLevel = 4;
@@ -68,43 +70,40 @@
             }
         }
 
-        app.init().then(() => {
-            document.body.appendChild(app.view);
-            createGrid();
-            app.view.addEventListener('mousedown', (event) => {
-                isDragging = true;
+        createGrid();
+
+        app.view.addEventListener('mousedown', (event) => {
+            isDragging = true;
+            startX = event.clientX;
+            startY = event.clientY;
+        });
+
+        app.view.addEventListener('mousemove', (event) => {
+            if (isDragging) {
+                const dx = event.clientX - startX;
+                const dy = event.clientY - startY;
+                offsetX += dx;
+                offsetY += dy;
                 startX = event.clientX;
                 startY = event.clientY;
-            });
+                updateGrid();
+            }
+        });
 
-            app.view.addEventListener('mousemove', (event) => {
-                if (isDragging) {
-                    const dx = event.clientX - startX;
-                    const dy = event.clientY - startY;
-                    offsetX += dx;
-                    offsetY += dy;
-                    startX = event.clientX;
-                    startY = event.clientY;
-                    updateGrid();
-                }
-            });
+        app.view.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
 
-            app.view.addEventListener('mouseup', () => {
-                isDragging = false;
-            });
+        app.view.addEventListener('mouseleave', () => {
+            isDragging = false;
+        });
 
-            app.view.addEventListener('mouseleave', () => {
-                isDragging = false;
-            });
-            app.view.addEventListener('click', (event) => {
-                const cellSize = (app.screen.width / gridSize) * zoomLevel;
-                const x = Math.floor((event.clientX - offsetX) / cellSize);
-                const y = Math.floor((event.clientY - offsetY) / cellSize);
-                const message = JSON.stringify({ x, y });
-                socket.send(message);
-            });
-            app.renderer.resize(window.innerWidth, window.innerHeight);
-            updateGrid();
+        app.view.addEventListener('click', (event) => {
+            const cellSize = (app.screen.width / gridSize) * zoomLevel;
+            const x = Math.floor((event.clientX - offsetX) / cellSize);
+            const y = Math.floor((event.clientY - offsetY) / cellSize);
+            const message = JSON.stringify({ x, y });
+            socket.send(message);
         });
 
         window.addEventListener('resize', () => {
@@ -137,8 +136,6 @@
             });
             updateGrid();
         };
-
-
     });
 </script>
 </body>
