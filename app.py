@@ -71,6 +71,17 @@ class GridManager:
     def get_grid_state(self) -> str:
         return json.dumps(self.grid)
 
+    def get_grid_updates_in_chunks(self, chunk_size: int = 10):
+        updates = []
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                updates.append((i, j, self.grid[i][j]))
+                if len(updates) == chunk_size:
+                    yield updates
+                    updates = []
+        if updates:
+            yield updates
+
 grid_manager = GridManager('grid.db')
 
 class ConnectionManager:
@@ -95,9 +106,10 @@ def update_grid_thread():
 
 def send_grid_state_thread():
     while True:
-        grid_state = grid_manager.get_grid_state()
-        asyncio.run(manager.broadcast(grid_state))
-        time.sleep(1)
+        for chunk in grid_manager.get_grid_updates_in_chunks():
+            grid_state_chunk = json.dumps(chunk)
+            asyncio.run(manager.broadcast(grid_state_chunk))
+            time.sleep(0.5)
 
 threading.Thread(target=update_grid_thread, daemon=True).start()
 threading.Thread(target=send_grid_state_thread, daemon=True).start()
