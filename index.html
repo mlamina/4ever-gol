@@ -31,14 +31,12 @@
             backgroundColor: 0xFFFFFF
         });
 
-
-
         const gridSize = 100;
-
+        let zoomLevel = 1;
+        const maxZoomLevel = 4;
 
         function createGrid() {
-
-            const cellSize = app.screen.width / gridSize;
+            const cellSize = (app.screen.width / gridSize) * zoomLevel;
             app.stage.removeChildren();
             for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
@@ -56,10 +54,18 @@
             createGrid();
         });
 
-
         window.addEventListener('resize', () => {
             console.log('resize: ', window.innerWidth, window.innerHeight);
             app.renderer.resize(window.innerWidth, window.innerHeight);
+            createGrid();
+        });
+
+        window.addEventListener('wheel', (event) => {
+            if (event.deltaY < 0) {
+                zoomLevel = Math.min(zoomLevel + 0.1, maxZoomLevel);
+            } else {
+                zoomLevel = Math.max(zoomLevel - 0.1, 1);
+            }
             createGrid();
         });
     });
