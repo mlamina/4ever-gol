@@ -10,9 +10,6 @@
     >
     <style>
         .grid {
-            display: grid;
-            grid-template-columns: repeat(1000, 1fr);
-            grid-template-rows: repeat(1000, 1fr);
             width: 100vw;
             height: 100vh;
             overflow: auto;
@@ -26,6 +23,8 @@
             background-color: black;
         }
     </style>
+    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
+    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
 </head>
 <body>
     <div class="grid" id="grid"></div>
@@ -33,34 +32,35 @@
         console.log("Hi");
         debugger;
         const gridElement = document.getElementById('grid');
-        // const socket = new WebSocket('ws://localhost:8000/ws');
-        //
-        // socket.onmessage = function(event) {
-        //     const gridState = JSON.parse(event.data);
-        //     console.log("Updating grid...");
-        //     for (let i = 0; i < 1000; i++) {
-        //         for (let j = 0; j < 1000; j++) {
-        //             const cell = document.getElementById(`cell-${i}-${j}`);
-        //             if (gridState[i][j] === 1) {
-        //                 cell.classList.add('alive');
-        //             } else {
-        //                 cell.classList.remove('alive');
-        //             }
-        //         }
-        //     }
-        // };
-        console.log("Hi");
-        for (let i = 0; i < 1000; i++) {
-            for (let j = 0; j < 1000; j++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.id = `cell-${i}-${j}`;
-                cell.addEventListener('click', () => {
-                    socket.send(JSON.stringify({ x: i, y: j }));
+        
+        new gridjs.Grid({
+            columns: 1000,
+            data: () => {
+                return new Promise((resolve) => {
+                    // Simulate dynamic data load
+                    const data = [];
+                    for (let i = 0; i < 1000; i++) {
+                        const row = [];
+                        for (let j = 0; j < 1000; j++) {
+                            row.push('');
+                        }
+                        data.push(row);
+                    }
+                    resolve(data);
                 });
-                gridElement.appendChild(cell);
-            }
-        }
+            },
+            pagination: {
+                enabled: true,
+                limit: 1000
+            },
+            resizable: true,
+            search: true,
+            sort: true,
+            fixedHeader: true,
+            height: '100vh'
+        }).render(gridElement);
+
+        console.log("Hi");
     </script>
 </body>
 </html>
