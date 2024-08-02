@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game of Life</title>
+    <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css"
+    >
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+        #spawnButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        #spawnWindow {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            width: 220px;
+            height: 220px;
+            background: white;
+            border: 1px solid black;
+            display: none;
+            z-index: 1000;
+        }
+        #spawnGrid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            width: 200px;
+            height: 200px;
+            margin: 10px;
+            border: 1px solid black;
+        }
+        .spawnCell {
+            width: 20px;
+            height: 20px;
+            border: 1px solid black;
+            background: white;
+        }
+        .spawnCell.active {
+            background: black;
+        }
+        #dropButton {
+            margin: 10px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.2.6/pixi.min.js" integrity="sha512-zc4TExgeBQ7b3Gs7JvLcztM9H9etw2zxwvzGU0TFKqPuxH4drXpPb9VjT7w78ahp04y36a1atVwgcxMw3cs2qg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+<button id="spawnButton" class="button is-primary">Spawn</button>
+<div id="spawnWindow">
+    <div id="spawnGrid"></div>
+    <button id="dropButton" class="button is-primary">Drop</button>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const app = new PIXI.Application({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: 0xFF0000,
+        });
+
+        const gridSize = 100;
+        let zoomLevel = 3;
+        const maxZoomLevel = 4;
+        let isDragging = false;
+        let startX, startY;
+        let offsetX = 0, offsetY = 0;
+        let wasDragging = false;
+
+        const colors = Array.from({ length: gridSize * gridSize }, () => Math.random() * 0xFFFFFF);
+        const cells = [];
+
+        function createGrid() {
+            const cellSize = (app.screen.width / gridSize) * zoomLevel;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const graphics = new PIXI.Graphics()
+                        .rect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
+                        .fill(colors[i * gridSize + j]);
+                    app.stage.addChild(graphics);
+                    cells.push(graphics);
+                }
+            }
+        }
+
+        function updateGrid() {
+            const cellSize = (app.screen.width / gridSize) * zoomLevel;
+
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const graphics = cells[i * gridSize + j];
+                    graphics.clear();
+                    graphics.context
+                        .rect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
+                        .fill(colors[i * gridSize + j]);
+                }
+            }
+        }
+
+        app.init().then(() => {
+            document.body.appendChild(app.view);
+            createGrid();
+            app.view.addEventListener('mousedown', (event) => {
+                isDragging = true;
+                startX = event.clientX;
+                startY = event.clientY;
+                wasDragging = false;
+            });
+
+            app.view.addEventListener('mousemove', (event) => {
+                if (isDragging) {
+                    const dx = event.clientX - startX;
+                    const dy = event.clientY - startY;
+                    offsetX += dx;
+                    offsetY += dy;
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    updateGrid();
+                    wasDragging = true;
+                }
+            });
+
+            app.view.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            app.view.addEventListener('mouseleave', () => {
+                isDragging = false;
+            });
+            app.view.addEventListener('click', (event) => {
+                if (wasDragging) return;
+                const cellSize = (app.screen.width / gridSize) * zoomLevel;
+                const x = Math.floor((event.clientX - offsetX) / cellSize);
+                const y = Math.floor((event.clientY - offsetY) / cellSize);
+                const message = JSON.stringify({ type:'flip', x, y });
+                // Flip the cell color
+                colors[x * gridSize + y] = colors[x * gridSize + y] === 0x000000 ? 0xFFFFFF : 0x000000;
+                updateGrid();
+                socket.send(message);
+            });
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+            updateGrid();
+        });
+
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+            updateGrid();
+            console.log('resizing grid');
+        });
+
+        window.addEventListener('wheel', (event) => {
+            if (event.deltaY < 0) {
+                zoomLevel = Math.min(zoomLevel + 0.01, maxZoomLevel);
+            } else {
+                zoomLevel = Math.max(zoomLevel - 0.01, 1);
+            }
+            updateGrid();
+        });
+
+        const socket = new WebSocket("ws://localhost:8000/ws");
+
+        socket.onmessage = function(event) {
+            const liveCells = JSON.parse(event.data);
+            // Reset all cells to white
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    colors[i * gridSize + j] = 0xFFFFFF;
+                }
+            }
+            // Set live cells to black
+            liveCells.forEach(([x, y]) => {
+                colors[x * gridSize + y] = 0x000000;
+            });
+            updateGrid();
+        };
+
+        // Spawn button functionality
+        const spawnButton = document.getElementById('spawnButton');
+        const spawnWindow = document.getElementById('spawnWindow');
+        const spawnGrid = document.getElementById('spawnGrid');
+        const dropButton = document.getElementById('dropButton');
+
+        spawnButton.addEventListener('click', () => {
+            spawnWindow.style.display = spawnWindow.style.display === 'none' ? 'block' : 'none';
+        });
+
+        for (let i = 0; i < 100; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('spawnCell');
+            cell.addEventListener('click', () => {
+                cell.classList.toggle('active');
+            });
+            spawnGrid.appendChild(cell);
+        }
+
+        let spawnWindowOffsetX = 0;
+        let spawnWindowOffsetY = 0;
+        let isSpawnWindowDragging = false;
+        let spawnWindowStartX, spawnWindowStartY;
+
+        spawnWindow.addEventListener('mousedown', (event) => {
+            isSpawnWindowDragging = true;
+            spawnWindowStartX = event.clientX;
+            spawnWindowStartY = event.clientY;
+            spawnWindowOffsetX = spawnWindow.offsetLeft;
+            spawnWindowOffsetY = spawnWindow.offsetTop;
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            if (isSpawnWindowDragging) {
+                const dx = event.clientX - spawnWindowStartX;
+                const dy = event.clientY - spawnWindowStartY;
+                spawnWindow.style.left = spawnWindowOffsetX + dx + 'px';
+                spawnWindow.style.top = spawnWindowOffsetY + dy + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isSpawnWindowDragging = false;
+        });
+
+        dropButton.addEventListener('click', () => {
+            const activeCells = [];
+            spawnGrid.querySelectorAll('.spawnCell').forEach((cell, index) => {
+                if (cell.classList.contains('active')) {
+                    const x = index % 10;
+                    const y = Math.floor(index / 10);
+                    activeCells.push([x, y]);
+                }
+            });
+
+            const spawnWindowX = spawnWindow.offsetLeft;
+            const spawnWindowY = spawnWindow.offsetTop;
+            const cellSize = (app.screen.width / gridSize) * zoomLevel;
+            const globalX = Math.floor((spawnWindowX - offsetX) / cellSize);
+            const globalY = Math.floor((spawnWindowY - offsetY) / cellSize);
+
+            activeCells.forEach(([x, y]) => {
+                const globalCellX = globalX + x;
+                const globalCellY = globalY + y;
+                colors[globalCellX * gridSize + globalCellY] = 0x000000;
+            });
+
+            updateGrid();
+
+            const message = JSON.stringify({ type: 'spawn', cells: activeCells, x: globalX, y: globalY });
+            socket.send(message);
+
+            // reset spawn window
+            spawnGrid.querySelectorAll('.spawnCell').forEach(cell => {
+                cell.classList.remove('active');
+            });
+
+            spawnWindow.style.display = 'none';
+        });
+    });
+</script>
+</body>
+</html>

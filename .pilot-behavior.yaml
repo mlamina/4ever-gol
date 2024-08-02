@@ -1,0 +1,14 @@
+- title: Update the UI
+  args:
+    change_request: Description of the change
+  instructions: |
+    1. Open the UI file
+    2. Make the necessary changes
+    3. Write the changes to the file
+- title: Update the API
+  args:
+    change_request: Description of the change
+  instructions: |
+    1. Open the backend file
+    2. Make the necessary changes
+    3. Write the changes to the file
