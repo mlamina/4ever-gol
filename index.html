@@ -37,6 +37,7 @@
         let isDragging = false;
         let startX, startY;
         let offsetX = 0, offsetY = 0;
+        let wasDragging = false;
 
         const colors = Array.from({ length: gridSize * gridSize }, () => Math.random() * 0xFFFFFF);
         const cells = [];
@@ -76,6 +77,7 @@
                 isDragging = true;
                 startX = event.clientX;
                 startY = event.clientY;
+                wasDragging = false;
             });
 
             app.view.addEventListener('mousemove', (event) => {
@@ -87,6 +89,7 @@
                     startX = event.clientX;
                     startY = event.clientY;
                     updateGrid();
+                    wasDragging = true;
                 }
             });
 
@@ -98,6 +101,7 @@
                 isDragging = false;
             });
             app.view.addEventListener('click', (event) => {
+                if (wasDragging) return;
                 const cellSize = (app.screen.width / gridSize) * zoomLevel;
                 const x = Math.floor((event.clientX - offsetX) / cellSize);
                 const y = Math.floor((event.clientY - offsetY) / cellSize);
