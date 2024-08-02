@@ -34,6 +34,11 @@
         const gridSize = 100;
         let zoomLevel = 1;
         const maxZoomLevel = 4;
+        let isDragging = false;
+        let startX, startY;
+        let offsetX = 0, offsetY = 0;
+
+        const colors = Array.from({ length: gridSize * gridSize }, () => Math.random() * 0xFFFFFF);
 
         function createGrid() {
             const cellSize = (app.screen.width / gridSize) * zoomLevel;
@@ -41,8 +46,8 @@
             for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = new PIXI.Graphics();
-                    graphics.beginFill(Math.random() * 0xFFFFFF);
-                    graphics.drawRect(i * cellSize, j * cellSize, cellSize, cellSize);
+                    graphics.beginFill(colors[i * gridSize + j]);
+                    graphics.drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize);
                     graphics.endFill();
                     app.stage.addChild(graphics);
                 }
@@ -67,6 +72,32 @@
                 zoomLevel = Math.max(zoomLevel - 0.1, 1);
             }
             createGrid();
+        });
+
+        app.view.addEventListener('mousedown', (event) => {
+            isDragging = true;
+            startX = event.clientX;
+            startY = event.clientY;
+        });
+
+        app.view.addEventListener('mousemove', (event) => {
+            if (isDragging) {
+                const dx = event.clientX - startX;
+                const dy = event.clientY - startY;
+                offsetX += dx;
+                offsetY += dy;
+                startX = event.clientX;
+                startY = event.clientY;
+                createGrid();
+            }
+        });
+
+        app.view.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        app.view.addEventListener('mouseleave', () => {
+            isDragging = false;
         });
     });
 </script>
