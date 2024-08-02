@@ -24,39 +24,41 @@
 </head>
 <body>
     <script>
-        const app = new PIXI.Application({
-            width: window.innerWidth,
-            height: window.innerHeight,
-            backgroundColor: 0xFFFFFF
-        });
-        document.body.appendChild(app.view);
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = new PIXI.Application({
+                width: window.innerWidth,
+                height: window.innerHeight,
+                backgroundColor: 0xFFFFFF
+            });
+            document.body.appendChild(app.view);
 
-        const gridSize = 100;
-        const cellSize = app.view.width / gridSize;
+            const gridSize = 100;
+            const cellSize = app.view.width / gridSize;
 
-        for (let i = 0; i < gridSize; i++) {
-            for (let j = 0; j < gridSize; j++) {
-                const graphics = new PIXI.Graphics();
-                graphics.beginFill(Math.random() * 0xFFFFFF);
-                graphics.drawRect(i * cellSize, j * cellSize, cellSize, cellSize);
-                graphics.endFill();
-                app.stage.addChild(graphics);
-            }
-        }
-
-        window.addEventListener('resize', () => {
-            app.renderer.resize(window.innerWidth, window.innerHeight);
-            const newCellSize = app.view.width / gridSize;
-            app.stage.removeChildren();
             for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = new PIXI.Graphics();
                     graphics.beginFill(Math.random() * 0xFFFFFF);
-                    graphics.drawRect(i * newCellSize, j * newCellSize, newCellSize, newCellSize);
+                    graphics.drawRect(i * cellSize, j * cellSize, cellSize, cellSize);
                     graphics.endFill();
                     app.stage.addChild(graphics);
                 }
             }
+
+            window.addEventListener('resize', () => {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+                const newCellSize = app.view.width / gridSize;
+                app.stage.removeChildren();
+                for (let i = 0; i < gridSize; i++) {
+                    for (let j = 0; j < gridSize; j++) {
+                        const graphics = new PIXI.Graphics();
+                        graphics.beginFill(Math.random() * 0xFFFFFF);
+                        graphics.drawRect(i * newCellSize, j * newCellSize, newCellSize, newCellSize);
+                        graphics.endFill();
+                        app.stage.addChild(graphics);
+                    }
+                }
+            });
         });
     </script>
 </body>
