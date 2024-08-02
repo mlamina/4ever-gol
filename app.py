@@ -10,6 +10,8 @@ import asyncio
 from typing import List
 
 
+logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
@@ -64,7 +66,6 @@ class GridManager:
 
             self.grid = new_grid
             self.grid_semaphore.release()
-            logger.info("Grid updated")
             time.sleep(1)
 
     def save_cell_state(self, x: int, y: int):
@@ -87,9 +88,16 @@ class GridManager:
                     live_cells.append([i, j])
         return live_cells
 
+    def spawn(self, topLeftX, topLeftY, cells):
+        logger.info(f"Spawning cells at ({topLeftX}, {topLeftY})")
+        for (x, y) in cells:
+            self.grid_semaphore.acquire()
+            self.grid[topLeftX + x][topLeftY + y] = 1
+            self.grid_semaphore.release()
 
 
 grid_manager = GridManager('grid.db')
+
 
 class ConnectionManager:
     def __init__(self):
@@ -121,6 +129,7 @@ def send_grid_state_thread():
 threading.Thread(target=update_grid_thread, daemon=True).start()
 threading.Thread(target=send_grid_state_thread, daemon=True).start()
 
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
@@ -128,9 +137,11 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
+            if message['type'] == 'spawn':
+                grid_manager.spawn(message['x'], message['y'], message['cells'])
+            elif message['type'] == 'flip':
+                grid_manager.flip_cell(message['x'], message['y'])
             print(message)
-            x, y = message['x'], message['y']
-            grid_manager.flip_cell(x, y)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 

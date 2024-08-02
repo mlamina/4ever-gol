@@ -100,8 +100,7 @@
 
         function updateGrid() {
             const cellSize = (app.screen.width / gridSize) * zoomLevel;
-            const liveCellCount = colors.filter(color => color === 0x000000).length;
-            console.log(`Live cell count: ${liveCellCount}`);
+
             for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = cells[i * gridSize + j];
@@ -148,7 +147,7 @@
                 const cellSize = (app.screen.width / gridSize) * zoomLevel;
                 const x = Math.floor((event.clientX - offsetX) / cellSize);
                 const y = Math.floor((event.clientY - offsetY) / cellSize);
-                const message = JSON.stringify({ x, y });
+                const message = JSON.stringify({ type:'flip', x, y });
                 // Flip the cell color
                 colors[x * gridSize + y] = colors[x * gridSize + y] === 0x000000 ? 0xFFFFFF : 0x000000;
                 updateGrid();
@@ -261,6 +260,11 @@
 
             const message = JSON.stringify({ type: 'spawn', cells: activeCells, x: globalX, y: globalY });
             socket.send(message);
+
+            // reset spawn window
+            spawnGrid.querySelectorAll('.spawnCell').forEach(cell => {
+                cell.classList.remove('active');
+            });
 
             spawnWindow.style.display = 'none';
         });
