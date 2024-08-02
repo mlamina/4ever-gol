@@ -12,3 +12,13 @@
     1. Open the backend file
     2. Make the necessary changes
     3. Write the changes to the file
+- title: Create a feature request
+  args:
+    user_story: User story describing the feature
+    implementation_details: Technical details to be considered when implementing the feature
+  instructions: |
+    Open a new Github issue with the following details:
+    - The given user story
+    - The technical details
+    - Verifiable acceptance criteria
+    - Add label `feature-request`

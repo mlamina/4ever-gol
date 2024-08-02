@@ -11,5 +11,5 @@ commands:
     snap: false
     spinner: false
     sync: false
-    verbose: false
+    verbose: true
     wait: true
