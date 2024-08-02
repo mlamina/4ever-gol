@@ -45,10 +45,9 @@
             const cellSize = (app.screen.width / gridSize) * zoomLevel;
             for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
-                    const graphics = new PIXI.Graphics();
-                    graphics.beginFill(colors[i * gridSize + j]);
-                    graphics.drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize);
-                    graphics.endFill();
+                    const graphics = new PIXI.Graphics()
+                        .rect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
+                        .fill(colors[i * gridSize + j]);
                     app.stage.addChild(graphics);
                     cells.push(graphics);
                 }
@@ -63,13 +62,9 @@
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = cells[i * gridSize + j];
                     graphics.clear();
-                    const color = colors[i * gridSize + j];
-                    if (color === 0x000000) {
-                        console.log(`[${i},${j}] Live cell with color: ${color}`);
-                    }
-                    graphics.beginFill(color);
-                    graphics.drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize);
-                    graphics.endFill();
+                    graphics.context
+                        .rect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
+                        .fill(colors[i * gridSize + j]);
                 }
             }
         }
@@ -107,6 +102,9 @@
                 const x = Math.floor((event.clientX - offsetX) / cellSize);
                 const y = Math.floor((event.clientY - offsetY) / cellSize);
                 const message = JSON.stringify({ x, y });
+                // Flip the cell color
+                colors[x * gridSize + y] = colors[x * gridSize + y] === 0x000000 ? 0xFFFFFF : 0x000000;
+                updateGrid();
                 socket.send(message);
             });
             app.renderer.resize(window.innerWidth, window.innerHeight);
