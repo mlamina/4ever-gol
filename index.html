@@ -32,8 +32,10 @@
         console.log("Hi");
         const gridElement = document.getElementById('grid');
         
+        const columns = Array.from({ length: 1000 }, (_, i) => `Column ${i + 1}`);
+
         new gridjs.Grid({
-            columns: 1000,
+            columns: columns,
             data: () => {
                 return new Promise((resolve) => {
                     // Simulate dynamic data load
