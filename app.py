@@ -25,6 +25,7 @@ app.add_middleware(
 class GridManager:
     def __init__(self, db_path: str, grid_size: int = 1000):
         self.grid_size = grid_size
+        self.grid_semaphore = threading.Semaphore()
         self.grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
@@ -44,6 +45,7 @@ class GridManager:
 
     def update_grid(self):
         while True:
+            self.grid_semaphore.acquire()
             new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
             for i in range(self.grid_size):
                 for j in range(self.grid_size):
@@ -61,6 +63,7 @@ class GridManager:
                         new_grid[i][j] = 1
 
             self.grid = new_grid
+            self.grid_semaphore.release()
             logger.info("Grid updated")
             time.sleep(1)
 
@@ -70,6 +73,11 @@ class GridManager:
 
     def get_grid_state(self) -> str:
         return json.dumps(self.grid)
+
+    def flip_cell(self, x: int, y: int):
+        self.grid_semaphore.acquire()
+        self.grid[x][y] = 1 - self.grid[x][y]
+        self.grid_semaphore.release()
 
     def get_live_cells(self) -> List[List[int]]:
         live_cells = []
@@ -120,9 +128,9 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
+            print(message)
             x, y = message['x'], message['y']
-            grid_manager.grid[x][y] = 1 - grid_manager.grid[x][y]
-            grid_manager.save_cell_state(x, y)
+            grid_manager.flip_cell(x, y)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
