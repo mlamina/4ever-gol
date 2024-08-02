@@ -23,7 +23,7 @@ app.add_middleware(
 )
 
 class GridManager:
-    def __init__(self, db_path: str, grid_size: int = 1000):
+    def __init__(self, db_path: str, grid_size: int = 100):
         self.grid_size = grid_size
         self.grid_semaphore = threading.Semaphore()
         self.grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
