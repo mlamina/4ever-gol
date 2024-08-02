@@ -39,10 +39,10 @@
         let offsetX = 0, offsetY = 0;
 
         const colors = Array.from({ length: gridSize * gridSize }, () => Math.random() * 0xFFFFFF);
+        const cells = [];
 
         function createGrid() {
             const cellSize = (app.screen.width / gridSize) * zoomLevel;
-            app.stage.removeChildren();
             for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = new PIXI.Graphics();
@@ -50,6 +50,20 @@
                     graphics.drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize);
                     graphics.endFill();
                     app.stage.addChild(graphics);
+                    cells.push(graphics);
+                }
+            }
+        }
+
+        function updateGrid() {
+            const cellSize = (app.screen.width / gridSize) * zoomLevel;
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const graphics = cells[i * gridSize + j];
+                    graphics.clear();
+                    graphics.beginFill(colors[i * gridSize + j]);
+                    graphics.drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize);
+                    graphics.endFill();
                 }
             }
         }
@@ -62,7 +76,7 @@
         window.addEventListener('resize', () => {
             console.log('resize: ', window.innerWidth, window.innerHeight);
             app.renderer.resize(window.innerWidth, window.innerHeight);
-            createGrid();
+            updateGrid();
         });
 
         window.addEventListener('wheel', (event) => {
@@ -71,7 +85,7 @@
             } else {
                 zoomLevel = Math.max(zoomLevel - 0.1, 1);
             }
-            createGrid();
+            updateGrid();
         });
 
         app.view.addEventListener('mousedown', (event) => {
@@ -88,7 +102,7 @@
                 offsetY += dy;
                 startX = event.clientX;
                 startY = event.clientY;
-                createGrid();
+                updateGrid();
             }
         });
 
