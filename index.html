@@ -19,10 +19,53 @@
         canvas {
             display: block;
         }
+        #spawnButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        #spawnWindow {
+            position: absolute;
+            top: 50px;
+            right: 50px;
+            width: 220px;
+            height: 220px;
+            background: white;
+            border: 1px solid black;
+            display: none;
+            z-index: 1000;
+        }
+        #spawnGrid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            width: 200px;
+            height: 200px;
+            margin: 10px;
+            border: 1px solid black;
+        }
+        .spawnCell {
+            width: 20px;
+            height: 20px;
+            border: 1px solid black;
+            background: white;
+        }
+        .spawnCell.active {
+            background: black;
+        }
+        #dropButton {
+            margin: 10px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.2.6/pixi.min.js" integrity="sha512-zc4TExgeBQ7b3Gs7JvLcztM9H9etw2zxwvzGU0TFKqPuxH4drXpPb9VjT7w78ahp04y36a1atVwgcxMw3cs2qg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
+<button id="spawnButton" class="button is-primary">Spawn</button>
+<div id="spawnWindow">
+    <div id="spawnGrid"></div>
+    <button id="dropButton" class="button is-primary">Drop</button>
+</div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const app = new PIXI.Application({
@@ -147,7 +190,80 @@
             updateGrid();
         };
 
+        // Spawn button functionality
+        const spawnButton = document.getElementById('spawnButton');
+        const spawnWindow = document.getElementById('spawnWindow');
+        const spawnGrid = document.getElementById('spawnGrid');
+        const dropButton = document.getElementById('dropButton');
 
+        spawnButton.addEventListener('click', () => {
+            spawnWindow.style.display = spawnWindow.style.display === 'none' ? 'block' : 'none';
+        });
+
+        for (let i = 0; i < 100; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('spawnCell');
+            cell.addEventListener('click', () => {
+                cell.classList.toggle('active');
+            });
+            spawnGrid.appendChild(cell);
+        }
+
+        let spawnWindowOffsetX = 0;
+        let spawnWindowOffsetY = 0;
+        let isSpawnWindowDragging = false;
+        let spawnWindowStartX, spawnWindowStartY;
+
+        spawnWindow.addEventListener('mousedown', (event) => {
+            isSpawnWindowDragging = true;
+            spawnWindowStartX = event.clientX;
+            spawnWindowStartY = event.clientY;
+            spawnWindowOffsetX = spawnWindow.offsetLeft;
+            spawnWindowOffsetY = spawnWindow.offsetTop;
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            if (isSpawnWindowDragging) {
+                const dx = event.clientX - spawnWindowStartX;
+                const dy = event.clientY - spawnWindowStartY;
+                spawnWindow.style.left = spawnWindowOffsetX + dx + 'px';
+                spawnWindow.style.top = spawnWindowOffsetY + dy + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isSpawnWindowDragging = false;
+        });
+
+        dropButton.addEventListener('click', () => {
+            const activeCells = [];
+            spawnGrid.querySelectorAll('.spawnCell').forEach((cell, index) => {
+                if (cell.classList.contains('active')) {
+                    const x = index % 10;
+                    const y = Math.floor(index / 10);
+                    activeCells.push([x, y]);
+                }
+            });
+
+            const spawnWindowX = spawnWindow.offsetLeft;
+            const spawnWindowY = spawnWindow.offsetTop;
+            const cellSize = (app.screen.width / gridSize) * zoomLevel;
+            const globalX = Math.floor((spawnWindowX - offsetX) / cellSize);
+            const globalY = Math.floor((spawnWindowY - offsetY) / cellSize);
+
+            activeCells.forEach(([x, y]) => {
+                const globalCellX = globalX + x;
+                const globalCellY = globalY + y;
+                colors[globalCellX * gridSize + globalCellY] = 0x000000;
+            });
+
+            updateGrid();
+
+            const message = JSON.stringify({ type: 'spawn', cells: activeCells, x: globalX, y: globalY });
+            socket.send(message);
+
+            spawnWindow.style.display = 'none';
+        });
     });
 </script>
 </body>
