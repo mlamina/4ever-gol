@@ -32,7 +32,7 @@
         });
 
         const gridSize = 100;
-        let zoomLevel = 1;
+        let zoomLevel = 3;
         const maxZoomLevel = 4;
         let isDragging = false;
         let startX, startY;
@@ -71,10 +71,36 @@
         app.init().then(() => {
             document.body.appendChild(app.view);
             createGrid();
+            app.view.addEventListener('mousedown', (event) => {
+                isDragging = true;
+                startX = event.clientX;
+                startY = event.clientY;
+            });
+
+            app.view.addEventListener('mousemove', (event) => {
+                if (isDragging) {
+                    const dx = event.clientX - startX;
+                    const dy = event.clientY - startY;
+                    offsetX += dx;
+                    offsetY += dy;
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    updateGrid();
+                }
+            });
+
+            app.view.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            app.view.addEventListener('mouseleave', () => {
+                isDragging = false;
+            });
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+            updateGrid();
         });
 
         window.addEventListener('resize', () => {
-            console.log('resize: ', window.innerWidth, window.innerHeight);
             app.renderer.resize(window.innerWidth, window.innerHeight);
             updateGrid();
         });
@@ -88,31 +114,7 @@
             updateGrid();
         });
 
-        app.view.addEventListener('mousedown', (event) => {
-            isDragging = true;
-            startX = event.clientX;
-            startY = event.clientY;
-        });
 
-        app.view.addEventListener('mousemove', (event) => {
-            if (isDragging) {
-                const dx = event.clientX - startX;
-                const dy = event.clientY - startY;
-                offsetX += dx;
-                offsetY += dy;
-                startX = event.clientX;
-                startY = event.clientY;
-                updateGrid();
-            }
-        });
-
-        app.view.addEventListener('mouseup', () => {
-            isDragging = false;
-        });
-
-        app.view.addEventListener('mouseleave', () => {
-            isDragging = false;
-        });
     });
 </script>
 </body>
