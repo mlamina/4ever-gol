@@ -195,8 +195,15 @@
         const spawnGrid = document.getElementById('spawnGrid');
         const dropButton = document.getElementById('dropButton');
 
-        spawnButton.addEventListener('click', () => {
+        spawnButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent the click event from propagating to the document
             spawnWindow.style.display = spawnWindow.style.display === 'none' ? 'block' : 'none';
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!spawnWindow.contains(event.target) && event.target !== spawnButton) {
+                spawnWindow.style.display = 'none';
+            }
         });
 
         for (let i = 0; i < 100; i++) {
