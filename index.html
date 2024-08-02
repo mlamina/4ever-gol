@@ -9,58 +9,55 @@
             href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css"
     >
     <style>
-        .grid {
-            width: 100vw;
-            height: 100vh;
-            overflow: auto;
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
         }
-        .cell {
-            width: 1px;
-            height: 1px;
-            border: 1px solid #ddd;
-        }
-        .alive {
-            background-color: black;
+        canvas {
+            display: block;
         }
     </style>
-    <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>
-    <link href="https://unpkg.com/gridjs/dist/theme/mermaid.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.2.1/pixi.min.js"></script>
 </head>
 <body>
-    <div class="grid" id="grid"></div>
     <script>
-        console.log("Hi");
-        const gridElement = document.getElementById('grid');
-        
-        const columns = Array.from({ length: 1000 }, (_, i) => `Column ${i + 1}`);
+        const app = new PIXI.Application({
+            width: window.innerWidth,
+            height: window.innerHeight,
+            backgroundColor: 0xFFFFFF
+        });
+        document.body.appendChild(app.view);
 
-        new gridjs.Grid({
-            columns: columns,
-            data: () => {
-                return new Promise((resolve) => {
-                    // Simulate dynamic data load
-                    const data = [];
-                    for (let i = 0; i < 1000; i++) {
-                        const row = [];
-                        for (let j = 0; j < 1000; j++) {
-                            row.push('');
-                        }
-                        data.push(row);
-                    }
-                    resolve(data);
-                });
-            },
-            pagination: {
-                enabled: true,
-                limit: 1000
-            },
-            resizable: true,
-            search: true,
-            sort: true,
-            fixedHeader: true,
-            height: '100vh'
-        }).render(gridElement);
+        const gridSize = 100;
+        const cellSize = app.view.width / gridSize;
 
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                const graphics = new PIXI.Graphics();
+                graphics.beginFill(Math.random() * 0xFFFFFF);
+                graphics.drawRect(i * cellSize, j * cellSize, cellSize, cellSize);
+                graphics.endFill();
+                app.stage.addChild(graphics);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight);
+            const newCellSize = app.view.width / gridSize;
+            app.stage.removeChildren();
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
+                    const graphics = new PIXI.Graphics();
+                    graphics.beginFill(Math.random() * 0xFFFFFF);
+                    graphics.drawRect(i * newCellSize, j * newCellSize, newCellSize, newCellSize);
+                    graphics.endFill();
+                    app.stage.addChild(graphics);
+                }
+            }
+        });
     </script>
 </body>
 </html>
