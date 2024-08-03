@@ -57,12 +57,20 @@
         #dropButton {
             margin: 10px;
         }
+        #dragMessage {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            font-size: 12px;
+            color: gray;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.2.6/pixi.min.js" integrity="sha512-zc4TExgeBQ7b3Gs7JvLcztM9H9etw2zxwvzGU0TFKqPuxH4drXpPb9VjT7w78ahp04y36a1atVwgcxMw3cs2qg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
 <button id="spawnButton" class="button is-primary">Spawn</button>
 <div id="spawnWindow">
+    <div id="dragMessage">Drag me</div>
     <div id="spawnGrid"></div>
     <button id="dropButton" class="button is-primary">Drop</button>
 </div>
