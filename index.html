@@ -65,6 +65,23 @@
             color: black;
             font-weight: bold;
         }
+        #infoButton {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
+        #infoTooltip {
+            display: none;
+            position: absolute;
+            top: 40px;
+            left: 10px;
+            width: 200px;
+            background: white;
+            border: 1px solid black;
+            padding: 10px;
+            z-index: 1000;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.2.6/pixi.min.js" integrity="sha512-zc4TExgeBQ7b3Gs7JvLcztM9H9etw2zxwvzGU0TFKqPuxH4drXpPb9VjT7w78ahp04y36a1atVwgcxMw3cs2qg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
@@ -75,6 +92,8 @@
     <div id="spawnGrid"></div>
     <button id="dropButton" class="button is-primary">Drop</button>
 </div>
+<button id="infoButton" class="button">?</button>
+<div id="infoTooltip">This is a web-based, interactive game of life. You can spawn cells and watch them evolve over time.</div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const app = new PIXI.Application({
@@ -284,6 +303,18 @@
             });
 
             spawnWindow.style.display = 'none';
+        });
+
+        // Info button functionality
+        const infoButton = document.getElementById('infoButton');
+        const infoTooltip = document.getElementById('infoTooltip');
+
+        infoButton.addEventListener('mouseover', () => {
+            infoTooltip.style.display = 'block';
+        });
+
+        infoButton.addEventListener('mouseout', () => {
+            infoTooltip.style.display = 'none';
         });
     });
 </script>
