@@ -65,6 +65,23 @@
             color: black;
             font-weight: bold;
         }
+        #infoButton {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
+        #infoTooltip {
+            display: none;
+            position: absolute;
+            top: 40px;
+            left: 10px;
+            width: 200px;
+            background: white;
+            border: 1px solid black;
+            padding: 10px;
+            z-index: 1000;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.2.6/pixi.min.js" integrity="sha512-zc4TExgeBQ7b3Gs7JvLcztM9H9etw2zxwvzGU0TFKqPuxH4drXpPb9VjT7w78ahp04y36a1atVwgcxMw3cs2qg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
@@ -74,6 +91,14 @@
     <div id="dragMessage">Drag me</div>
     <div id="spawnGrid"></div>
     <button id="dropButton" class="button is-primary">Drop</button>
+</div>
+<button id="infoButton" class="button">?</button>
+<div id="infoTooltip">
+    This is a never-ending, interactive <a href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life" target="_blank">game of life</a>.
+    Use the button on the right to spawn cells and watch them evolve over time. Every user gets assigned a random color.
+
+    <br>
+    Navigate the grid by dragging and zooming it!
 </div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -91,7 +116,7 @@
         let offsetX = 0, offsetY = 0;
         let wasDragging = false;
 
-        const colors = Array.from({ length: gridSize * gridSize }, () => Math.random() * 0xFFFFFF);
+        const colors = Array.from({ length: gridSize * gridSize }, () => 0xFFFFFF);
         const cells = [];
 
         function createGrid() {
@@ -99,8 +124,9 @@
             for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = new PIXI.Graphics()
-                        .rect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
-                        .fill(colors[i * gridSize + j]);
+                        .beginFill(colors[i * gridSize + j])
+                        .drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
+                        .endFill();
                     app.stage.addChild(graphics);
                     cells.push(graphics);
                 }
@@ -114,9 +140,9 @@
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = cells[i * gridSize + j];
                     graphics.clear();
-                    graphics.context
-                        .rect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
-                        .fill(colors[i * gridSize + j]);
+                    graphics.beginFill(colors[i * gridSize + j])
+                        .drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
+                        .endFill();
                 }
             }
         }
@@ -191,9 +217,9 @@
                     colors[i * gridSize + j] = 0xFFFFFF;
                 }
             }
-            // Set live cells to black
-            liveCells.forEach(([x, y]) => {
-                colors[x * gridSize + y] = 0x000000;
+            // Set live cells to their respective colors
+            liveCells.forEach(([x, y, color]) => {
+                colors[x * gridSize + y] = parseInt(color.replace('#', '0x'));
             });
             updateGrid();
         };
@@ -284,6 +310,15 @@
 
             spawnWindow.style.display = 'none';
         });
+
+        // Info button functionality
+        const infoButton = document.getElementById('infoButton');
+        const infoTooltip = document.getElementById('infoTooltip');
+
+        infoButton.addEventListener('click', () => {
+            infoTooltip.style.display = infoTooltip.style.display === 'block' ? 'none' : 'block';
+        });
+
     });
 </script>
 </body>
