@@ -91,7 +91,7 @@
         let offsetX = 0, offsetY = 0;
         let wasDragging = false;
 
-        const colors = Array.from({ length: gridSize * gridSize }, () => Math.random() * 0xFFFFFF);
+        const colors = Array.from({ length: gridSize * gridSize }, () => 0xFFFFFF);
         const cells = [];
 
         function createGrid() {
@@ -99,8 +99,9 @@
             for (let i = 0; i < gridSize; i++) {
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = new PIXI.Graphics()
-                        .rect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
-                        .fill(colors[i * gridSize + j]);
+                        .beginFill(colors[i * gridSize + j])
+                        .drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
+                        .endFill();
                     app.stage.addChild(graphics);
                     cells.push(graphics);
                 }
@@ -114,9 +115,9 @@
                 for (let j = 0; j < gridSize; j++) {
                     const graphics = cells[i * gridSize + j];
                     graphics.clear();
-                    graphics.context
-                        .rect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
-                        .fill(colors[i * gridSize + j]);
+                    graphics.beginFill(colors[i * gridSize + j])
+                        .drawRect(i * cellSize + offsetX, j * cellSize + offsetY, cellSize, cellSize)
+                        .endFill();
                 }
             }
         }
@@ -191,9 +192,9 @@
                     colors[i * gridSize + j] = 0xFFFFFF;
                 }
             }
-            // Set live cells to black
-            liveCells.forEach(([x, y]) => {
-                colors[x * gridSize + y] = 0x000000;
+            // Set live cells to their respective colors
+            liveCells.forEach(([x, y, color]) => {
+                colors[x * gridSize + y] = parseInt(color.replace('#', '0x'));
             });
             updateGrid();
         };
