@@ -1,6 +1,6 @@
 import logging
 import os
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 import psycopg2
 import threading
@@ -9,6 +9,7 @@ import json
 import asyncio
 from typing import List, Optional
 import random
+from fastapi.responses import HTMLResponse
 
 
 logging.basicConfig(level=logging.INFO)
@@ -196,6 +197,11 @@ async def websocket_endpoint(websocket: WebSocket):
             print(message)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+@app.get("/")
+async def serve_index(request: Request):
+    with open("index.html") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
 
 if __name__ == "__main__":
     import uvicorn
