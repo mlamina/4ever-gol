@@ -207,7 +207,8 @@
             updateGrid();
         });
         const host = window.location.host;
-        const socket = new WebSocket(`ws://${host}/ws`);
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socket = new WebSocket(`${protocol}://${host}/ws`);
 
         socket.onmessage = function(event) {
             const liveCells = JSON.parse(event.data);
