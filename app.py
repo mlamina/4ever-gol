@@ -7,7 +7,7 @@ import threading
 import time
 import json
 import asyncio
-from typing import List
+from typing import List, Optional
 import random
 
 
@@ -25,12 +25,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class Cell:
+    def __init__(self, x: int, y: int, color: Optional[str] = None):
+        self.x = x
+        self.y = y
+        self.color = color
+
 class GridManager:
     def __init__(self, db_path: str, grid_size: int = 100):
         self.grid_size = grid_size
         self.grid_semaphore = threading.Semaphore()
-        self.grid = [[0 for _ in range(grid_size)] for _ in range(grid_size)]
-        self.colors = [[None for _ in range(grid_size)] for _ in range(grid_size)]
+        self.grid = [[None for _ in range(grid_size)] for _ in range(grid_size)]
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self._initialize_db()
@@ -45,8 +50,8 @@ class GridManager:
         rows = self.cursor.fetchall()
         for row in rows:
             x, y, state, color = row
-            self.grid[x][y] = state
-            self.colors[x][y] = color
+            if state == 1:
+                self.grid[x][y] = Cell(x, y, color)
 
     def update_grid(self):
         """
@@ -56,8 +61,8 @@ class GridManager:
         """
         while True:
             self.grid_semaphore.acquire()
-            new_grid, new_colors = self._calculate_next_state()
-            self.grid, self.colors = new_grid, new_colors
+            new_grid = self._calculate_next_state()
+            self.grid = new_grid
             self.grid_semaphore.release()
             time.sleep(1)
 
@@ -66,24 +71,20 @@ class GridManager:
         Calculate the next state of the grid.
 
         Returns:
-            new_grid (List[List[int]]): The new state of the grid.
-            new_colors (List[List[Optional[str]]]): The new colors of the cells.
+            new_grid (List[List[Optional[Cell]]]): The new state of the grid.
         """
-        new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
-        new_colors = [[None for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        new_grid = [[None for _ in range(self.grid_size)] for _ in range(self.grid_size)]
 
         for i in range(self.grid_size):
             for j in range(self.grid_size):
                 live_neighbors, neighbor_colors = self._count_live_neighbors_and_colors(i, j)
 
-                if self.grid[i][j] == 1 and live_neighbors in [2, 3]:
-                    new_grid[i][j] = 1
-                    new_colors[i][j] = self.colors[i][j]
-                elif self.grid[i][j] == 0 and live_neighbors == 3:
-                    new_grid[i][j] = 1
-                    new_colors[i][j] = random.choice(neighbor_colors) if neighbor_colors else None
+                if self.grid[i][j] is not None and live_neighbors in [2, 3]:
+                    new_grid[i][j] = Cell(i, j, self.grid[i][j].color)
+                elif self.grid[i][j] is None and live_neighbors == 3:
+                    new_grid[i][j] = Cell(i, j, random.choice(neighbor_colors) if neighbor_colors else None)
 
-        return new_grid, new_colors
+        return new_grid
 
     def _count_live_neighbors_and_colors(self, x: int, y: int):
         """
@@ -106,42 +107,43 @@ class GridManager:
                     continue
                 ni, nj = x + dx, y + dy
                 if 0 <= ni < self.grid_size and 0 <= nj < self.grid_size:
-                    live_neighbors += self.grid[ni][nj]
-                    if self.grid[ni][nj] == 1:
-                        neighbor_colors.append(self.colors[ni][nj])
+                    if self.grid[ni][nj] is not None:
+                        live_neighbors += 1
+                        neighbor_colors.append(self.grid[ni][nj].color)
 
         return live_neighbors, neighbor_colors
 
     def save_cell_state(self, x: int, y: int):
-        self.cursor.execute('REPLACE INTO grid (x, y, state, color) VALUES (?, ?, ?, ?)', (x, y, self.grid[x][y], self.colors[x][y]))
+        cell = self.grid[x][y]
+        state = 1 if cell is not None else 0
+        color = cell.color if cell is not None else None
+        self.cursor.execute('REPLACE INTO grid (x, y, state, color) VALUES (?, ?, ?, ?)', (x, y, state, color))
         self.conn.commit()
 
     def get_grid_state(self) -> str:
-        return json.dumps(self.grid)
+        return json.dumps([[1 if cell is not None else 0 for cell in row] for row in self.grid])
 
     def flip_cell(self, x: int, y: int, color: str = None):
         self.grid_semaphore.acquire()
-        self.grid[x][y] = 1 - self.grid[x][y]
-        if self.grid[x][y] == 1:
-            self.colors[x][y] = color
+        if self.grid[x][y] is None:
+            self.grid[x][y] = Cell(x, y, color)
         else:
-            self.colors[x][y] = None
+            self.grid[x][y] = None
         self.grid_semaphore.release()
 
     def get_live_cells(self) -> List[List[int]]:
         live_cells = []
         for i in range(self.grid_size):
             for j in range(self.grid_size):
-                if self.grid[i][j] == 1:
-                    live_cells.append([i, j, self.colors[i][j]])
+                if self.grid[i][j] is not None:
+                    live_cells.append([i, j, self.grid[i][j].color])
         return live_cells
 
     def spawn(self, topLeftX, topLeftY, cells, color):
         logger.info(f"Spawning cells at ({topLeftX}, {topLeftY})")
         for (x, y) in cells:
             self.grid_semaphore.acquire()
-            self.grid[topLeftX + x][topLeftY + y] = 1
-            self.colors[topLeftX + x][topLeftY + y] = color
+            self.grid[topLeftX + x][topLeftY + y] = Cell(topLeftX + x, topLeftY + y, color)
             self.grid_semaphore.release()
 
 
