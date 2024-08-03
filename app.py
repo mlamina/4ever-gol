@@ -49,34 +49,68 @@ class GridManager:
             self.colors[x][y] = color
 
     def update_grid(self):
+        """
+        Update the grid based on the rules of Conway's Game of Life.
+
+        This method calculates the next state of the grid and updates the cell colors based on their neighbors.
+        """
         while True:
             self.grid_semaphore.acquire()
-            new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
-            new_colors = [[None for _ in range(self.grid_size)] for _ in range(self.grid_size)]
-            for i in range(self.grid_size):
-                for j in range(self.grid_size):
-                    live_neighbors = 0
-                    neighbor_colors = []
-                    for dx in [-1, 0, 1]:
-                        for dy in [-1, 0, 1]:
-                            if dx == 0 and dy == 0:
-                                continue
-                            ni, nj = i + dx, j + dy
-                            if 0 <= ni < self.grid_size and 0 <= nj < self.grid_size:
-                                live_neighbors += self.grid[ni][nj]
-                                if self.grid[ni][nj] == 1:
-                                    neighbor_colors.append(self.colors[ni][nj])
-                    if self.grid[i][j] == 1 and live_neighbors in [2, 3]:
-                        new_grid[i][j] = 1
-                        new_colors[i][j] = self.colors[i][j]
-                    elif self.grid[i][j] == 0 and live_neighbors == 3:
-                        new_grid[i][j] = 1
-                        new_colors[i][j] = random.choice(neighbor_colors) if neighbor_colors else None
-
-            self.grid = new_grid
-            self.colors = new_colors
+            new_grid, new_colors = self._calculate_next_state()
+            self.grid, self.colors = new_grid, new_colors
             self.grid_semaphore.release()
             time.sleep(1)
+
+    def _calculate_next_state(self):
+        """
+        Calculate the next state of the grid.
+
+        Returns:
+            new_grid (List[List[int]]): The new state of the grid.
+            new_colors (List[List[Optional[str]]]): The new colors of the cells.
+        """
+        new_grid = [[0 for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        new_colors = [[None for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+
+        for i in range(self.grid_size):
+            for j in range(self.grid_size):
+                live_neighbors, neighbor_colors = self._count_live_neighbors_and_colors(i, j)
+
+                if self.grid[i][j] == 1 and live_neighbors in [2, 3]:
+                    new_grid[i][j] = 1
+                    new_colors[i][j] = self.colors[i][j]
+                elif self.grid[i][j] == 0 and live_neighbors == 3:
+                    new_grid[i][j] = 1
+                    new_colors[i][j] = random.choice(neighbor_colors) if neighbor_colors else None
+
+        return new_grid, new_colors
+
+    def _count_live_neighbors_and_colors(self, x: int, y: int):
+        """
+        Count the live neighbors and their colors for a given cell.
+
+        Args:
+            x (int): The x-coordinate of the cell.
+            y (int): The y-coordinate of the cell.
+
+        Returns:
+            live_neighbors (int): The number of live neighbors.
+            neighbor_colors (List[Optional[str]]): The colors of the live neighbors.
+        """
+        live_neighbors = 0
+        neighbor_colors = []
+
+        for dx in [-1, 0, 1]:
+            for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:
+                    continue
+                ni, nj = x + dx, y + dy
+                if 0 <= ni < self.grid_size and 0 <= nj < self.grid_size:
+                    live_neighbors += self.grid[ni][nj]
+                    if self.grid[ni][nj] == 1:
+                        neighbor_colors.append(self.colors[ni][nj])
+
+        return live_neighbors, neighbor_colors
 
     def save_cell_state(self, x: int, y: int):
         self.cursor.execute('REPLACE INTO grid (x, y, state, color) VALUES (?, ?, ?, ?)', (x, y, self.grid[x][y], self.colors[x][y]))
