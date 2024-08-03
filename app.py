@@ -1,14 +1,15 @@
 import logging
-
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+import os
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
-import sqlite3
+import psycopg2
 import threading
 import time
 import json
 import asyncio
 from typing import List, Optional
 import random
+from fastapi.responses import HTMLResponse
 
 
 logging.basicConfig(level=logging.INFO)
@@ -32,11 +33,11 @@ class Cell:
         self.color = color
 
 class GridManager:
-    def __init__(self, db_path: str, grid_size: int = 100):
+    def __init__(self, db_url: str, grid_size: int = 100):
         self.grid_size = grid_size
         self.grid_semaphore = threading.Semaphore()
         self.grid = [[None for _ in range(grid_size)] for _ in range(grid_size)]
-        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.conn = psycopg2.connect(db_url)
         self.cursor = self.conn.cursor()
         self._initialize_db()
         self._load_grid_state()
@@ -147,7 +148,7 @@ class GridManager:
             self.grid_semaphore.release()
 
 
-grid_manager = GridManager('grid.db')
+grid_manager = GridManager(os.getenv('POSTGRES_URL'))
 
 
 class ConnectionManager:
@@ -196,6 +197,11 @@ async def websocket_endpoint(websocket: WebSocket):
             print(message)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+
+@app.get("/")
+async def serve_index(request: Request):
+    with open("index.html") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
 
 if __name__ == "__main__":
     import uvicorn
