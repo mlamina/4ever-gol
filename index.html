@@ -206,8 +206,8 @@
             }
             updateGrid();
         });
-
-        const socket = new WebSocket("ws://localhost:8000/ws");
+        const host = window.location.host;
+        const socket = new WebSocket(`ws://${host}/ws`);
 
         socket.onmessage = function(event) {
             const liveCells = JSON.parse(event.data);
