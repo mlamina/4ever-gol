@@ -93,7 +93,13 @@
     <button id="dropButton" class="button is-primary">Drop</button>
 </div>
 <button id="infoButton" class="button">?</button>
-<div id="infoTooltip">This is a web-based, interactive game of life. You can spawn cells and watch them evolve over time.</div>
+<div id="infoTooltip">
+    This is a never-ending, interactive <a href="https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life" target="_blank">game of life</a>.
+    Use the button on the right to spawn cells and watch them evolve over time. Every user gets assigned a random color.
+
+    <br>
+    Navigate the grid by dragging and zooming it!
+</div>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const app = new PIXI.Application({
@@ -309,13 +315,10 @@
         const infoButton = document.getElementById('infoButton');
         const infoTooltip = document.getElementById('infoTooltip');
 
-        infoButton.addEventListener('mouseover', () => {
-            infoTooltip.style.display = 'block';
+        infoButton.addEventListener('click', () => {
+            infoTooltip.style.display = infoTooltip.style.display === 'block' ? 'none' : 'block';
         });
 
-        infoButton.addEventListener('mouseout', () => {
-            infoTooltip.style.display = 'none';
-        });
     });
 </script>
 </body>
