@@ -57,12 +57,21 @@
         #dropButton {
             margin: 10px;
         }
+        #dragMessage {
+            position: absolute;
+            top: -2em;
+            left: 0;
+            font-size: 14px;
+            color: black;
+            font-weight: bold;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.2.6/pixi.min.js" integrity="sha512-zc4TExgeBQ7b3Gs7JvLcztM9H9etw2zxwvzGU0TFKqPuxH4drXpPb9VjT7w78ahp04y36a1atVwgcxMw3cs2qg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
 <button id="spawnButton" class="button is-primary">Spawn</button>
 <div id="spawnWindow">
+    <div id="dragMessage">Drag me</div>
     <div id="spawnGrid"></div>
     <button id="dropButton" class="button is-primary">Drop</button>
 </div>
@@ -195,8 +204,15 @@
         const spawnGrid = document.getElementById('spawnGrid');
         const dropButton = document.getElementById('dropButton');
 
-        spawnButton.addEventListener('click', () => {
-            spawnWindow.style.display = spawnWindow.style.display === 'none' ? 'block' : 'none';
+        spawnButton.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent the click event from propagating to the document
+            spawnWindow.style.display = 'block'
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!spawnWindow.contains(event.target) && event.target !== spawnButton) {
+                spawnWindow.style.display = 'none';
+            }
         });
 
         for (let i = 0; i < 100; i++) {

@@ -1,15 +1,15 @@
-- title: Update the UI
+- title: Change UI code
   args:
     change_request: Description of the change
   instructions: |
-    1. Open the UI file
+    1. Open `./index.html`
     2. Make the necessary changes
     3. Write the changes to the file
-- title: Update the API
+- title: Change backend code
   args:
     change_request: Description of the change
   instructions: |
-    1. Open the backend file
+    1. Open `./app.py`
     2. Make the necessary changes
     3. Write the changes to the file
 - title: Create a feature request
