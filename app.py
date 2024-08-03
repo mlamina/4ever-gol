@@ -1,8 +1,8 @@
 import logging
-
+import os
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import sqlite3
+import psycopg2
 import threading
 import time
 import json
@@ -32,11 +32,11 @@ class Cell:
         self.color = color
 
 class GridManager:
-    def __init__(self, db_path: str, grid_size: int = 100):
+    def __init__(self, db_url: str, grid_size: int = 100):
         self.grid_size = grid_size
         self.grid_semaphore = threading.Semaphore()
         self.grid = [[None for _ in range(grid_size)] for _ in range(grid_size)]
-        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.conn = psycopg2.connect(db_url)
         self.cursor = self.conn.cursor()
         self._initialize_db()
         self._load_grid_state()
@@ -147,7 +147,7 @@ class GridManager:
             self.grid_semaphore.release()
 
 
-grid_manager = GridManager('grid.db')
+grid_manager = GridManager(os.getenv('POSTGRES_URL'))
 
 
 class ConnectionManager:
